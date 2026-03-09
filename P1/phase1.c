@@ -70,8 +70,11 @@ int main(void) {
         printf("  Account %d: $%.2f\n", i, accounts[i].balance);
     }
 
-    double expected_total = NUM_ACCOUNTS * INITIAL_BALANCE;
-    printf("\nExpected total: $%.2f\n\n", expected_total);
+    double initial_total = NUM_ACCOUNTS * INITIAL_BALANCE;
+    printf("\nInitial total: $%.2f\n\n", initial_total);
+
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
     pthread_t threads[NUM_THREADS];
     int thread_ids[NUM_THREADS];
@@ -91,6 +94,11 @@ int main(void) {
         }
     }
 
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    double elapsed =
+        (end.tv_sec - start.tv_sec) +
+        (end.tv_nsec - start.tv_nsec) / 1e9;
+
     printf("\n=== Final Results ===\n");
     double actual_total = 0.0;
     for (int i = 0; i < NUM_ACCOUNTS; i++) {
@@ -99,11 +107,12 @@ int main(void) {
         actual_total += accounts[i].balance;
     }
 
-    printf("\nExpected total: $%.2f\n", expected_total);
-    printf("Actual total:   $%.2f\n", actual_total);
-    printf("Difference:     $%.2f\n", actual_total - expected_total);
+    printf("\nInitial total: $%.2f\n", initial_total);
+    printf("Actual total:  $%.2f\n", actual_total);
+    printf("Difference:    $%.2f\n", actual_total - initial_total);
+    printf("Time: %.6f seconds\n", elapsed);
 
-    if (actual_total != expected_total) {
+    if (actual_total != initial_total) {
         printf("\nRACE CONDITION DETECTED!\n");
         printf("Run the program multiple times to observe different results.\n");
     } else {
