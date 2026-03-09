@@ -18,6 +18,10 @@ typedef struct {
 
 Account accounts[NUM_ACCOUNTS];
 
+double total_deposited = 0.0;
+double total_withdrawn = 0.0;
+pthread_mutex_t totals_lock;
+
 void initialize_accounts(void) {
     for (int i = 0; i < NUM_ACCOUNTS; i++) {
         accounts[i].account_id = i;
@@ -25,30 +29,38 @@ void initialize_accounts(void) {
         accounts[i].transaction_count = 0;
         pthread_mutex_init(&accounts[i].lock, NULL);
     }
+
+    pthread_mutex_init(&totals_lock, NULL);
 }
 
 void cleanup_mutexes(void) {
     for (int i = 0; i < NUM_ACCOUNTS; i++) {
         pthread_mutex_destroy(&accounts[i].lock);
     }
+
+    pthread_mutex_destroy(&totals_lock);
 }
 
 void deposit_safe(int account_id, double amount) {
     pthread_mutex_lock(&accounts[account_id].lock);
-
     accounts[account_id].balance += amount;
     accounts[account_id].transaction_count++;
-
     pthread_mutex_unlock(&accounts[account_id].lock);
+
+    pthread_mutex_lock(&totals_lock);
+    total_deposited += amount;
+    pthread_mutex_unlock(&totals_lock);
 }
 
 void withdrawal_safe(int account_id, double amount) {
     pthread_mutex_lock(&accounts[account_id].lock);
-
     accounts[account_id].balance -= amount;
     accounts[account_id].transaction_count++;
-
     pthread_mutex_unlock(&accounts[account_id].lock);
+
+    pthread_mutex_lock(&totals_lock);
+    total_withdrawn += amount;
+    pthread_mutex_unlock(&totals_lock);
 }
 
 void *teller_thread(void *arg) {
@@ -84,8 +96,8 @@ int main(void) {
         printf("  Account %d: $%.2f\n", i, accounts[i].balance);
     }
 
-    double expected_total = NUM_ACCOUNTS * INITIAL_BALANCE;
-    printf("\nExpected total: $%.2f\n\n", expected_total);
+    double initial_total = NUM_ACCOUNTS * INITIAL_BALANCE;
+    printf("\nInitial total: $%.2f\n\n", initial_total);
 
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -115,6 +127,8 @@ int main(void) {
         (end.tv_sec - start.tv_sec) +
         (end.tv_nsec - start.tv_nsec) / 1e9;
 
+    double expected_total = initial_total + total_deposited - total_withdrawn;
+
     printf("\n=== Final Results ===\n");
     double actual_total = 0.0;
     for (int i = 0; i < NUM_ACCOUNTS; i++) {
@@ -123,9 +137,11 @@ int main(void) {
         actual_total += accounts[i].balance;
     }
 
-    printf("\nExpected total: $%.2f\n", expected_total);
-    printf("Actual total:   $%.2f\n", actual_total);
-    printf("Difference:     $%.2f\n", actual_total - expected_total);
+    printf("\nTotal deposited: $%.2f\n", total_deposited);
+    printf("Total withdrawn: $%.2f\n", total_withdrawn);
+    printf("Expected total:  $%.2f\n", expected_total);
+    printf("Actual total:    $%.2f\n", actual_total);
+    printf("Difference:      $%.2f\n", actual_total - expected_total);
     printf("Time: %.6f seconds\n", elapsed);
 
     if (actual_total == expected_total) {
