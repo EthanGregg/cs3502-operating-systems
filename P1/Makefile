@@ -13,7 +13,7 @@ phase3: phase3.c
 	$(CC) $(CFLAGS) phase3.c -o phase3
 
 phase4: phase4.c
-	$(CC) $(CFLAGS) phase4.c -o phase4
+	$(CC) $(CFLAGS) pahse4.c -o phase4
 
 clean:
 	rm -f phase1 phase2 phase3 phase4
