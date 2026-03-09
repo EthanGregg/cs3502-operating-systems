@@ -1,0 +1,24 @@
+# Compiled executables
+phase1
+phase2
+phase3
+phase4
+
+# Object files
+*.o
+
+# Temporary files
+*.out
+*.log
+*.tmp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor backups
+*~
+*.swp
+
+# Build artifacts
+a.out
